@@ -101,6 +101,7 @@ class Builder {
     if (o.color) t.color = o.color;
     if (o.position) t.position = o.position;
     if (o.side) t.side = o.side;
+    if (o.callout) t.callout = true;
     for (const m of o.markers || []) { const id = str(m, 100); if (id) { t.markers.push(id); this.counts.markers++; } }
     for (const l of o.labels || []) { const s = str(l, 200); if (s) { t.labels.push(s); this.counts.labels++; } }
     if (o.note) { t.note = str(o.note, MAX_NOTE); if (t.note) this.counts.notes++; }
@@ -128,7 +129,7 @@ function num(v) { const n = Number(v); return Number.isFinite(n) && n > 0 && n <
  * Generic iterative tree build. src nodes are read through an adapter:
  *   a.fields(node) -> topic fields (title, markers, ...)
  *   a.attached(node) -> array of child src nodes
- *   a.detached(node) -> array (root only), a.summaryTopics(node) -> array
+ *   a.detached(node) -> array (root only), a.summaryTopics(node) -> array, a.callouts(node) -> array (optional)
  *   a.boundaries(node) -> [{range,title}], a.summaries(node) -> [{range, topicId}]
  */
 function buildTree(B, rootSrc, a) {
@@ -170,6 +171,13 @@ function buildTree(B, rootSrc, a) {
     }
     // A summary topic that no summary points to still shows, over all children.
     for (const [id, t] of sumTopics) if (!usedSum.has(id) && n > 0) dst.summaries.push({ from: 0, to: n - 1, topic: t, orphan: true });
+    // Callouts (XMind 8 and 2020+): drawn as children after the attached ones, so boundary and summary
+    // ranges (indexes into the attached children) still point at the same topics.
+    for (const k of a.callouts ? a.callouts(src) : []) {
+      const t = B.topic({ ...a.fields(k, depth + 1), callout: true });
+      dst.children.push(t);
+      pending.push({ src: k, dst: t, depth: depth + 1 });
+    }
     if (depth === 0) {
       for (const k of a.detached(src)) {
         const t = B.topic(a.fields(k, 1));
@@ -194,7 +202,7 @@ function finishSheet(B, raw) {
   const rels = [];
   let badRels = 0;
   for (const r of raw.relationships || []) {
-    if (!r || !all.has(r.from) || !all.has(r.to) || r.from === r.to) { badRels++; continue; }
+    if (!r || !all.has(r.from) || !all.has(r.to)) { badRels++; continue; } // from === to: a loop (Freeplane allows it)
     rels.push({ id: str(r.id, 200) || 'r' + rels.length, from: r.from, to: r.to, title: str(r.title, 500) });
   }
   B.counts.relationships = rels.length;
@@ -220,6 +228,7 @@ const jsonAdapter = {
   attached(o) { return jsonAdapter.kids(o, 'attached'); },
   detached(o) { return jsonAdapter.kids(o, 'detached'); },
   summaryTopics(o) { return jsonAdapter.kids(o, 'summary'); },
+  callouts(o) { return jsonAdapter.kids(o, 'callout'); },
   boundaries(o) { return Array.isArray(o.boundaries) ? o.boundaries.filter(b => b && typeof b === 'object').map(b => ({ range: b.range, title: b.title })) : []; },
   summaries(o) { return Array.isArray(o.summaries) ? o.summaries.filter(b => b && typeof b === 'object').map(b => ({ range: b.range, topicId: b.topicId })) : []; },
   fields(o) {
@@ -288,6 +297,7 @@ const xmlAdapter = {
   attached: n => xmlTopicsOfType(n, 'attached'),
   detached: n => xmlTopicsOfType(n, 'detached'),
   summaryTopics: n => xmlTopicsOfType(n, 'summary'),
+  callouts: n => xmlTopicsOfType(n, 'callout'),
   boundaries: n => { const b = kid(n, 'boundaries'); return b ? kidsNamed(b, 'boundary').map(x => ({ range: attr(x, 'range'), title: kid(x, 'title') ? textOf(kid(x, 'title')) : '' })) : []; },
   summaries: n => { const b = kid(n, 'summaries'); return b ? kidsNamed(b, 'summary').map(x => ({ range: attr(x, 'range'), topicId: attr(x, 'topic-id') })) : []; },
   fields(n) {

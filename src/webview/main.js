@@ -334,7 +334,7 @@ function nodeSvg(n, th, color, useMapColors, forExport, lod) {
   else if (n.depth === 1 && !n.isSummary) { fill = th.bg; stroke = color; text = th.fg; sw = 1.6; }
   else { fill = th.node; stroke = color; text = th.fg; }
   if (useMapColors && t.color) text = t.color;
-  parts.push(`<rect class="frame" width="${n.w}" height="${n.h}" rx="${L.rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${n.depth >= 2 || n.isSummary ? ' stroke-opacity="0.6"' : ''}/>`);
+  parts.push(`<rect class="frame" width="${n.w}" height="${n.h}" rx="${L.rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${n.depth >= 2 || n.isSummary ? ' stroke-opacity="0.6"' : ''}${t.callout ? ' stroke-dasharray="4 3"' : ''}/>`);
   // Far zoomed out on a large map: boxes only, text is too small to read anyway.
   if (lod) return `<g class="tp${n.depth === 0 ? ' root' : ''}" data-i="${n.i}" transform="translate(${r1(n.x)},${r1(n.y)})">${parts[0]}</g>`;
   if (n.depth === 1 && !n.isSummary && !(useMapColors && t.fill)) parts.push(`<rect width="${n.w}" height="${n.h}" rx="${L.rx}" fill="${color}" fill-opacity="0.2" pointer-events="none"/>`);
@@ -532,7 +532,23 @@ function drawSvg(L, sheet, forExport, rect) {
   out.push('</g><g class="rels" fill="none">');
   for (const r of sheet.relationships) {
     const a = visibleNode(L, ix, r.from), c = visibleNode(L, ix, r.to);
-    if (!a || !c || a === c) continue;
+    if (!a || !c) continue;
+    if (a === c) {
+      // A link from a topic to itself (Freeplane allows it): a small loop on the top right corner.
+      // Skipped when the ends are two different topics hidden in one collapsed branch.
+      if (r.from !== r.to || a.t.id !== r.from) continue;
+      if (!inRect(rect, a.x - 60, a.y - 80, a.x + a.w + 80, a.y + a.h + 20)) continue;
+      const x0 = a.x + a.w - Math.min(18, a.w / 3), y0 = a.y, x2 = a.x + a.w, y2 = a.y + Math.min(14, a.h / 2);
+      out.push(`<path class="rel" d="M${r1(x0)} ${r1(y0)}C${r1(x0 + 4)} ${r1(y0 - 44)} ${r1(x2 + 44)} ${r1(y2 - 4)} ${r1(x2)} ${r1(y2)}" stroke="${th.rel}" stroke-width="1.6" stroke-dasharray="7 4" marker-end="url(#arr)"/>`);
+      if (r.title) {
+        mctx.font = `400 12px ${fontFamily}`;
+        const label = r.title.length > 60 ? r.title.slice(0, 59) + '…' : r.title;
+        const tw = mctx.measureText(label).width + 12, mx = x2 + 22, my = y0 - 30;
+        out.push(`<rect x="${r1(mx - tw / 2)}" y="${r1(my - 10)}" width="${r1(tw)}" height="20" rx="4" fill="${th.bg}" stroke="${th.rel}" stroke-width="1"/><text x="${r1(mx)}" y="${r1(my)}" dy="0.35em" text-anchor="middle" font-size="12" fill="${th.rel}">${esc(label)}</text>`);
+      }
+      stats.relationships++;
+      continue;
+    }
     if (!inRect(rect, Math.min(a.x, c.x) - 200, Math.min(a.y, c.y) - 200, Math.max(a.x + a.w, c.x + c.w) + 200, Math.max(a.y + a.h, c.y + c.h) + 200)) continue;
     const hidden = a.t.id !== r.from || c.t.id !== r.to;
     const ac = [a.x + a.w / 2, a.y + a.h / 2], cc = [c.x + c.w / 2, c.y + c.h / 2];

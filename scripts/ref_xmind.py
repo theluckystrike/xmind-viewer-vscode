@@ -7,13 +7,13 @@ Prints JSON: {"format": "xmind-json|xmind-xml|freemind|opml|error", "sheets": [.
 Per sheet: title, rootTitle, topics, relationships, boundaries, summaries, markers, images, imagesOk, notes, labels, equations.
 
 Counting rules (the viewer must report the same numbers):
-  topics        root + attached + detached + summary topics, recursively (.mm: every <node>; .opml: 1 root + every <outline>)
-  relationships both ends exist in the sheet (.mm: arrowlinks whose DESTINATION exists)
-  boundaries    range "(a,b)" with 0 <= a <= b < number of attached children, or "(master)"
+  topics        root + attached + detached + summary + callout topics, recursively (.mm: every <node>; .opml: 1 root + every <outline>)
+  relationships both ends exist in the sheet (.mm: arrowlinks whose DESTINATION exists, loops to the same node included)
+  boundaries    range "(a,b)" with 0 <= a <= b < number of attached children, or "(master)" / "master" (.mm: nodes with a <cloud>)
   summaries     range "(a,b)" as above
   markers       marker refs with a non-empty id (.mm: <icon BUILTIN>)
   images        topics with an image reference; imagesOk: those whose path is safe and exists in the zip
-  notes         topics with a non-empty note; labels: all labels; equations: topics with a LaTeX (mathJax) extension
+  notes         topics with a non-empty note (.mm: NOTE or DETAILS richcontent); labels: all labels; equations: topics with a LaTeX (mathJax) extension
 No entry is ever inflated past 64 MB, so a zip bomb is reported as an error.
 """
 import json, os, re, struct, sys, threading, zipfile, zlib
@@ -72,7 +72,7 @@ def ranges_ok(r, n, allow_master):
     if not isinstance(r, str):
         return False
     r = r.strip()
-    if allow_master and r == '(master)':
+    if allow_master and r in ('(master)', 'master'):
         return True
     m = RANGE.match(r.replace(' ', ''))
     if not m:
@@ -97,7 +97,7 @@ def zen_children(t):
         return [], []
     att = [c for c in ch.get('attached') or [] if isinstance(c, dict)] if isinstance(ch.get('attached'), list) else []
     other = []
-    for k in ('detached', 'summary'):
+    for k in ('detached', 'summary', 'callout'):
         v = ch.get(k)
         if isinstance(v, list):
             other += [c for c in v if isinstance(c, dict)]
@@ -227,8 +227,10 @@ def freemind(path):
     for n in nodes:
         out['markers'] += sum(1 for i in n.findall('icon') if i.get('BUILTIN'))
         out['relationships'] += sum(1 for a in n.findall('arrowlink') if a.get('DESTINATION') in ids)
-        if any(r.get('TYPE') == 'NOTE' and ''.join(r.itertext()).strip() for r in n.findall('richcontent')):
+        if any(r.get('TYPE') in ('NOTE', 'DETAILS') and ''.join(r.itertext()).strip() for r in n.findall('richcontent')):
             out['notes'] += 1
+        if n.find('cloud') is not None:
+            out['boundaries'] += 1
     return out
 
 

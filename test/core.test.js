@@ -109,6 +109,24 @@ test('password protected maps get a clear message', async () => {
   await assert.rejects(openMap(bufferReader(zip), 'p.xmind'), e => e.code === 'password' && /password/i.test(e.message));
 });
 
+test('XMind 8 manifest with an empty password-hint opens (XMind 8 writes it into every file)', async () => {
+  const content = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><xmap-content xmlns="urn:xmind:xmap:xmlns:content:2.0" version="2.0"><sheet id="s1"><topic id="t1"><title>Root</title><children><topics type="attached"><topic id="t2"><title>Child</title></topic></topics></children></topic><title>Sheet 1</title></sheet></xmap-content>';
+  const manifest = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><manifest xmlns="urn:xmind:xmap:xmlns:manifest:1.0" password-hint=""><file-entry full-path="content.xml" media-type="text/xml"/><file-entry full-path="META-INF/" media-type=""/><file-entry full-path="META-INF/manifest.xml" media-type="text/xml"/></manifest>';
+  const zip = makeZip([{ name: 'content.xml', data: content }, { name: 'META-INF/manifest.xml', data: manifest }]);
+  const r = await openMap(bufferReader(zip), 'x8.xmind');
+  assert.strictEqual(r.model.sheets[0].root.title, 'Root');
+  assert.strictEqual(r.model.sheets[0].root.children[0].title, 'Child');
+  // a real XMind 8 password file: encryption-data on the entries (with or without a hint)
+  for (const hint of ['', 'my hint']) {
+    const enc = `<manifest xmlns="urn:xmind:xmap:xmlns:manifest:1.0" password-hint="${hint}"><file-entry full-path="content.xml" media-type="text/xml"><encryption-data checksum-type="MD5" checksum="x"><algorithm algorithm-name="PBEWithMD5AndDES"/><key-derivation key-derivation-name="PKCS12" salt="x" iteration-count="1024"/></encryption-data></file-entry></manifest>`;
+    const z2 = makeZip([{ name: 'content.xml', data: 'encrypted bytes' }, { name: 'META-INF/manifest.xml', data: enc }]);
+    await assert.rejects(openMap(bufferReader(z2), 'p8.xmind'), e => e.code === 'password');
+  }
+  // a hint that is not empty also means a password
+  const z3 = makeZip([{ name: 'content.xml', data: 'encrypted bytes' }, { name: 'META-INF/manifest.xml', data: '<manifest password-hint="cat name"></manifest>' }]);
+  await assert.rejects(openMap(bufferReader(z3), 'p9.xmind'), e => e.code === 'password');
+});
+
 test('content.json elements: sheets, relationships, boundaries, summaries, equation, folded', async () => {
   const root = {
     id: 'r', title: 'Root', structureClass: 'org.xmind.ui.logic.right',

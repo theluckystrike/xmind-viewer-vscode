@@ -57,7 +57,9 @@ async function openMap(reader, fileName) {
   const manifest = await get('manifest.json', 4 * 1024 * 1024).catch(() => null);
   const manifestXml = manifest ? null : await get('META-INF/manifest.xml', 4 * 1024 * 1024).catch(() => null);
   const mtext = manifest ? manifest.toString('utf8') : manifestXml ? manifestXml.toString('utf8') : '';
-  if (/encryption-data|"encryption"|password-hint/i.test(mtext)) {
+  // XMind 8 writes password-hint="" into the manifest of every file, also without a password, so only the
+  // encryption data (or a hint that is not empty) means the content is encrypted.
+  if (/encryption-data|"encryption"|password-hint\s*=\s*"[^"]|"password-hint"\s*:\s*"[^"]/i.test(mtext)) {
     throw new LoadError('This map has a password. XMind encrypts the content of such files, so it can only be opened in XMind. Remove the password in XMind (File > Password) to view it here.', 'password');
   }
   let m = null;

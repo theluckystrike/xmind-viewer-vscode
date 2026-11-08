@@ -74,7 +74,7 @@ A 30 MB `.xmind` with 10,111 topics and 60 pictures opened in VS Code in 0.65 se
 - Maps with a password cannot be opened: XMind encrypts their content. You see a message that says so.
 - Fishbone, timeline, matrix and brace sheets are drawn as logic or org charts. Topic positions you dragged by hand in XMind are not kept; the viewer lays out the map itself.
 - Styles from XMind themes (fonts, line shapes, topic shapes) are not copied. Topic fill and text colors are.
-- Equations in an exported PNG may be drawn as text; SVG export keeps them as MathML.
+- In an exported PNG, equations show as their LaTeX source. SVG export keeps them as MathML.
 
 ## Privacy
 

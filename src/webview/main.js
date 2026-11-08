@@ -381,7 +381,12 @@ function nodeSvg(n, th, color, useMapColors, forExport, lod) {
   if (m.eq) {
     const ex = (n.w - m.eq.w) / 2;
     y += m.rowH ? 4 : 0;
-    if (forExport) {
+    if (forExport === 'png') {
+      // A canvas does not draw MathML from an SVG picture, so the PNG shows the LaTeX source, squeezed to fit the box.
+      const src = t.equation.length > 80 ? t.equation.slice(0, 79) + '…' : t.equation;
+      const fit = src.length * 7.3 > m.eq.w - 6 ? ` textLength="${Math.max(10, m.eq.w - 6)}" lengthAdjust="spacingAndGlyphs"` : '';
+      parts.push(`<text x="${n.w / 2}" y="${y + m.eq.h / 2}" dy="0.35em" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="12"${fit} fill="${text}">${esc(src)}</text>`);
+    } else if (forExport) {
       let mathml = '';
       try { mathml = window.katex.renderToString(t.equation, { throwOnError: false, output: 'mathml', displayMode: true, strict: 'ignore' }); } catch {}
       parts.push(`<foreignObject x="${ex}" y="${y}" width="${m.eq.w}" height="${m.eq.h}"><div xmlns="http://www.w3.org/1999/xhtml" style="color:${text};font-size:15px;text-align:center">${mathml.replace(XML_BAD, '')}</div></foreignObject>`);
@@ -964,8 +969,8 @@ function onImage(m) {
 }
 
 // ---------- export ----------
-function exportSvgText() {
-  const d = drawSvg(S.last, S.model.sheets[S.sheet], true);
+function exportSvgText(kind) {
+  const d = drawSvg(S.last, S.model.sheets[S.sheet], kind || 'svg');
   return { text: '<?xml version="1.0" encoding="UTF-8"?>\n' + d.svg, W: d.W, H: d.H };
 }
 function sheetSuffix() {
@@ -1001,14 +1006,13 @@ async function doExport(kind) {
       S.lastExport = { kind, bytes: text.length };
       vscode.postMessage({ type: 'save', kind: 'svg', text, suffix: sheetSuffix() });
     } else if (kind === 'png') {
-      const { text, W, H } = exportSvgText();
+      const { text, W, H } = exportSvgText('png');
       let r;
       try { r = await svgToPng(text, W, H); }
       catch (e) {
         // Equations travel as MathML in a foreignObject; if the canvas refuses that, draw them as LaTeX text.
         const plain = text.replace(/<foreignObject[\s\S]*?<\/foreignObject>/g, '');
         r = await svgToPng(plain, W, H);
-        notice('Equations are drawn as text in this PNG.');
       }
       const data = b64(await r.blob.arrayBuffer());
       S.lastExport = { kind, w: r.w, h: r.h, bytes: r.blob.size };

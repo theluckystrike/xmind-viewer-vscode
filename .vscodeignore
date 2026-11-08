@@ -1,0 +1,14 @@
+src/**
+test/**
+scripts/**
+samples/**
+node_modules/**
+**/*.map
+icon.svg
+.gitignore
+dist/*.vsix
+*.vsix
+package-lock.json
+.github/**
+images/**
+!images/readme-project-plan-dark.png

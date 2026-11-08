@@ -1,0 +1,170 @@
+{
+  "name": "xmind-mind-map-viewer",
+  "displayName": "XMind Viewer & Mind Map Viewer (XMind 8, 2020+)",
+  "description": "XMind viewer and mind map viewer for VS Code. Opens XMind 2020+, XMind Zen and XMind 8 files with every sheet as a tab, relationships, boundaries, summaries, markers, notes, pictures and LaTeX equations. Also opens FreeMind .mm and OPML. Search, collapse, PNG, SVG and Markdown export. Free, works offline.",
+  "version": "0.1.0",
+  "publisher": "zovo",
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1D2433",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=18"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "xmind",
+    "xmind viewer",
+    "mind map",
+    "mindmap",
+    "mind map viewer",
+    "mindmap viewer",
+    "xmind zen",
+    "xmind 8",
+    "freemind",
+    "freeplane",
+    "opml",
+    "outline",
+    "brainstorming",
+    "mind mapping",
+    "concept map",
+    "offline"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  },
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "xmindViewer.map",
+        "displayName": "XMind Viewer",
+        "selector": [
+          { "filenamePattern": "*.xmind" },
+          { "filenamePattern": "*.mm" },
+          { "filenamePattern": "*.opml" }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      { "command": "xmindViewer.openWalkthrough", "title": "Get Started", "category": "XMind Viewer" },
+      { "command": "xmindViewer.openWith", "title": "Open in XMind Viewer", "category": "XMind Viewer" },
+      { "command": "xmindViewer.supportDeveloper", "title": "Support the developer", "category": "XMind Viewer" },
+      { "command": "xmindViewer.moreViewers", "title": "More free viewers", "category": "XMind Viewer" }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "xmindViewer.openWith",
+          "when": "resourceExtname == .xmind || resourceExtname == .mm || resourceExtname == .opml",
+          "group": "navigation@9"
+        }
+      ],
+      "commandPalette": [
+        { "command": "xmindViewer.openWith", "when": "false" }
+      ]
+    },
+    "configuration": {
+      "title": "XMind Viewer",
+      "properties": {
+        "xmindViewer.defaultLayout": {
+          "type": "string",
+          "enum": ["file", "map", "right", "left", "tree", "org"],
+          "enumDescriptions": ["The layout saved in the file", "Map (both sides)", "Logic chart (right)", "Logic chart (left)", "Tree", "Org chart (down)"],
+          "default": "file",
+          "description": "Layout of a sheet when it opens. You can change it per sheet in the toolbar."
+        },
+        "xmindViewer.collapseLevel": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Collapse branches below this level when a map opens. 0 shows every topic (branches folded in XMind stay folded)."
+        },
+        "xmindViewer.useMapColors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use topic fill and text colors saved in the map. Turn off to draw every topic in the colors of your VS Code theme."
+        },
+        "xmindViewer.maxFileMB": {
+          "type": "number",
+          "default": 1024,
+          "minimum": 1,
+          "maximum": 65536,
+          "description": "Files up to this size (in MB) are opened. An .xmind file is read in parts: only the map and the pictures on screen are unpacked."
+        },
+        "xmindViewer.askForRating": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask one time for a Marketplace rating after you have used XMind Viewer on a few files on different days. You can answer \"Later\" or \"No thanks\". Nothing is sent anywhere."
+        },
+        "xmindViewer.showSupportLinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the small Sponsor and More free viewers links in the corner of the viewer. The change shows in files you open next. Nothing is sent anywhere."
+        }
+      }
+    },
+    "walkthroughs": [
+      {
+        "id": "xmindViewer.start",
+        "title": "Get started with XMind Viewer",
+        "description": "Read XMind mind maps in VS Code without XMind.",
+        "steps": [
+          {
+            "id": "open",
+            "title": "Open an XMind file",
+            "description": "Click a .xmind, .mm or .opml file in the Explorer. Every sheet of the map is a tab at the top.\n[Find a mind map](command:workbench.action.quickOpen?%5B%22.xmind%22%5D)",
+            "media": { "image": "images/readme-project-plan-dark.png", "altText": "An XMind 2020 map in XMind Viewer with sheet tabs, relationships, a boundary, a summary, markers and an equation." },
+            "completionEvents": ["onCommand:workbench.action.quickOpen"]
+          },
+          {
+            "id": "navigate",
+            "title": "Move, zoom and collapse",
+            "description": "Drag to move the map. Ctrl or Cmd + wheel zooms at the mouse, F fits the sheet. Click the small circle at the end of a branch, or press Space, to collapse it.",
+            "media": { "markdown": "walkthrough/navigate.md" }
+          },
+          {
+            "id": "export",
+            "title": "Search and export",
+            "description": "Search finds topics, notes and labels, even in collapsed branches. Export saves PNG or SVG, or copies the sheet as a Markdown outline.\n[Open settings](command:workbench.action.openSettings?%5B%22xmindViewer%22%5D)",
+            "media": { "markdown": "walkthrough/export.md" },
+            "completionEvents": ["onCommand:workbench.action.openSettings"]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "node scripts/build.js --production",
+    "build": "node scripts/build.js --production",
+    "test": "node scripts/build.js --production && node --test test/*.test.js",
+    "samples": "python3 -I scripts/make_samples.py samples",
+    "package": "npx -y @vscode/vsce package --no-dependencies -o dist/"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "homepage": "https://github.com/theluckystrike/xmind-viewer-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/theluckystrike/xmind-viewer-vscode/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theluckystrike/xmind-viewer-vscode"
+  },
+  "sponsor": {
+    "url": "https://github.com/sponsors/theluckystrike"
+  }
+}

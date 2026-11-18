@@ -6,6 +6,13 @@ Open `.xmind` mind maps in VS Code without XMind. Free, no sign-in, works offlin
 
 *A real XMind 2020 file (`samples/project-plan-2020.xmind`) in VS Code 1.142, dark theme.*
 
+## Teams and companies
+
+- Zovo Pro Team is the company licence: USD 59 once for a team of 5, one key, the Pro tools in every Zovo extension that has them. [See Zovo Pro Team](https://license.zovo.one/buy/zovo-pro-team?client_reference_id=readme-xmind)
+- Commercial use is allowed.
+- The key is checked on your computer, so it works offline. No account and no subscription.
+- Invoice with your company name and tax ID on request: support@zovo.one.
+
 ## What it opens
 
 | File | Made by | What you see |
